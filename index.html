@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海龟汤生成器</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0b0b1e;
+  --panel:  #13112e;
+  --panel2: #1c1840;
+  --border: #3a3568;
+  --purple: #a78bfa;
+  --accent: #7c3aed;
+  --red:    #dc2626;
+  --red2:   #f87171;
+  --orange: #f97316;
+  --teal:   #2dd4bf;
+  --yellow: #fbbf24;
+  --text:   #e2e0ff;
+  --text2:  #8b85cc;
+  --px:     'Press Start 2P', monospace;
+  --sans:   'Press Start 2P', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--px);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* =========== 像素夜城背景 =========== */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.scene .sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #05050f 0%, #0d0b28 40%, #1a0a30 65%, #250d3a 80%, #0d0515 100%);
+}
+.scene .stars { position: absolute; inset: 0; }
+.scene .rain  { position: absolute; inset: 0; opacity: 0.2; }
+
+.raindrop {
+  position: absolute; width: 2px;
+  background: linear-gradient(180deg, transparent, #a78bfa);
+  animation: rain linear infinite;
+}
+@keyframes rain {
+  0%   { transform: translateY(-80px); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* 建筑 SVG 撑满底部 */
+.scene .city {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  width: 100%; height: 45%;
+}
+
+/* 扫描线 */
+.scanlines {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px);
+}
+
+/* =========== LAYOUT =========== */
+.app {
+  position: relative; z-index: 2;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+  min-height: 100vh;
+}
+
+/* =========== HEADER =========== */
+.header {
+  text-align: center;
+  padding: 48px 0 32px;
+}
+.header-logo {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 24px #7c3aed);
+  animation: float 2.8s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-10px) rotate(3deg); }
+}
+.header-title {
+  font-size: 36px;
+  letter-spacing: 12px;
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--red), 6px 6px 0 rgba(220,38,38,0.3), 0 0 30px var(--purple), 0 0 60px rgba(124,58,237,0.4);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.header-sub {
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 4px;
+}
+
+/* 像素分割线 */
+.px-hr {
+  display: flex; align-items: center; gap: 8px;
+  margin: 20px 0; font-size: 10px; color: var(--text2); letter-spacing: 3px;
+}
+.px-hr::before, .px-hr::after {
+  content: '';  flex: 1; height: 3px;
+  background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px);
+}
+
+/* =========== 像素面板 =========== */
+.px-panel {
+  background: var(--panel);
+  border: 3px solid var(--border);
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(167,139,250,0.08);
+}
+.px-panel::before { content:'▪'; position:absolute; top:-2px; left:-2px; color:var(--purple); font-size:9px; line-height:1; }
+.px-panel::after  { content:'▪'; position:absolute; top:-2px; right:-2px; color:var(--purple); font-size:9px; line-height:1; }
+
+.px-panel-title {
+  font-size: 14px;
+  color: var(--purple);
+  letter-spacing: 6px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid;
+  border-image: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px) 1;
+}
+
+/* =========== 输入框 =========== */
+.input-label {
+  font-size: 12px;
+  color: var(--text2);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  display: block;
+  line-height: 1.8;
+}
+.input-label em { color: var(--purple); font-style: normal; }
+
+.kw-row { display: flex; gap: 10px; }
+.kw-row input { flex: 1; min-width: 0; }
+
+input[type="text"] {
+  background: #080818;
+  border: 3px solid var(--border);
+  color: var(--text);
+  font-family: var(--px);
+  font-size: 14px;
+  padding: 14px 16px;
+  width: 100%;
+  outline: none;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5);
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus {
+  border-color: var(--purple);
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5), 0 0 12px rgba(124,58,237,0.3);
+}
+input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px; }
+
+.input-group { margin-bottom: 20px; }
+
+/* =========== 像素按钮 =========== */
+.px-btn {
+  display: block; width: 100%;
+  padding: 18px 20px;
+  font-family: var(--px);
+  font-size: 14px;
+  letter-spacing: 4px;
+  cursor: pointer; border: none;
+  text-align: center;
+  transition: transform 0.05s;
+  line-height: 1.5;
+}
+
+.px-btn-main {
+  background: #3d0f0f;
+  color: var(--red2);
+  border: 4px solid var(--red);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #150505, 0 0 16px rgba(220,38,38,0.35), inset 0 1px 0 rgba(248,113,113,0.15);
+  text-shadow: 0 0 10px var(--red2);
+}
+.px-btn-main:hover:not(:disabled) {
+  background: #5c1515;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #150505, 0 0 24px rgba(220,38,38,0.55), inset 0 1px 0 rgba(248,113,113,0.15);
+}
+.px-btn-main:active:not(:disabled) { transform: translate(3px,3px); box-shadow: 0 0 0 1px var(--bg), 2px 2px 0 #150505; }
+.px-btn-main:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.px-btn-back {
+  background: var(--panel);
+  color: var(--text2);
+  border: 3px solid var(--purple);
+  font-size: 11px;
+  letter-spacing: 3px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.4), 0 0 10px rgba(167,139,250,0.15);
+}
+.px-btn-back:hover { color: #fff; border-color: #fff; transform: translate(-2px,-2px); }
+
+.px-btn-reset {
+  background: transparent; color: var(--text2);
+  border: 3px solid var(--border); font-size: 11px;
+  letter-spacing: 2px; box-shadow: 4px 4px 0 rgba(0,0,0,0.4);
+  margin-top: 14px;
+}
+.px-btn-reset:hover { color: var(--red2); border-color: var(--red); }
+
+.px-btn-reveal {
+  background: #1a0520; color: var(--red2);
+  border: 4px solid var(--red); font-size: 15px; letter-spacing: 5px;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 20px rgba(220,38,38,0.5), inset 0 1px 0 rgba(248,113,113,0.1);
+  text-shadow: 0 0 12px var(--red2);
+  padding: 20px;
+  animation: revealPulse 2s ease-in-out infinite;
+}
+@keyframes revealPulse {
+  0%,100% { box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 20px rgba(220,38,38,0.4); }
+  50%      { box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 36px rgba(220,38,38,0.75); }
+}
+.px-btn-reveal:hover { transform: translate(-2px,-2px); }
+.px-btn-reveal:active { transform: translate(3px,3px); }
+
+/* =========== 加载 =========== */
+.loading-center { text-align: center; padding: 12px 0 16px; }
+.cauldron-anim {
+  font-size: 52px; display: block; margin-bottom: 14px;
+  animation: boil 0.65s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 10px #dc2626);
+}
+@keyframes boil {
+  0%   { transform: scale(1) rotate(-4deg); }
+  100% { transform: scale(1.1) rotate(4deg); filter: drop-shadow(0 0 18px #f97316); }
+}
+.loading-pct {
+  font-size: 16px; color: var(--red2); letter-spacing: 3px;
+  text-shadow: 0 0 10px var(--red); margin-bottom: 18px;
+}
+.px-progress-wrap {
+  background: #080818; border: 3px solid var(--border); height: 22px; padding: 3px;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5); margin-bottom: 6px;
+}
+.px-progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--red) 0, var(--red) 10px, var(--orange) 10px, var(--orange) 16px);
+  transition: width 0.25s;
+  box-shadow: 0 0 8px var(--red);
+}
+.progress-sub {
+  font-size: 9px; color: var(--text2); letter-spacing: 3px; text-align: right;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* =========== 历史列表 =========== */
+.history-empty {
+  text-align: center; padding: 40px 24px;
+  letter-spacing: 2px; line-height: 1;
+  background: rgba(13,11,30,0.88);
+  border: 3px solid var(--border);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5);
+}
+.history-empty .line1 { color: var(--text); font-size: 16px; display: block; margin-bottom: 20px; letter-spacing: 3px; }
+.history-empty .line2 { color: var(--purple); font-size: 13px; display: block; letter-spacing: 2px; }
+.empty-skull { font-size: 52px; display: block; margin-bottom: 24px; }
+
+.hist-item {
+  background: var(--panel2); border: 3px solid var(--border);
+  padding: 18px 20px; margin-bottom: 10px;
+  cursor: pointer; transition: all 0.1s;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+  position: relative; overflow: hidden;
+}
+.hist-item::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: repeating-linear-gradient(180deg, var(--red) 0, var(--red) 5px, transparent 5px, transparent 10px);
+}
+.hist-item:hover {
+  border-color: var(--purple); transform: translate(-2px,-2px);
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.5);
+}
+.hist-title {
+  font-size: 14px; color: var(--text); margin-bottom: 12px;
+  padding-left: 12px; text-shadow: 0 0 10px var(--purple); letter-spacing: 2px;
+}
+.hist-tags { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 12px; }
+.px-tag {
+  font-size: 9px; padding: 4px 10px;
+  border: 2px solid var(--border); color: var(--text2); background: #080818;
+}
+.px-tag.st { border-color: rgba(167,139,250,0.5); color: var(--purple); }
+
+/* =========== 结果页 =========== */
+.recipe-text {
+  font-size: 11px; color: var(--text2);
+  letter-spacing: 1px; line-height: 2.5;
+}
+.recipe-text .kw { color: var(--teal); }
+.recipe-text .st { color: var(--orange); }
+
+.story-title-display {
+  font-size: 22px; color: #fff; text-align: center;
+  padding: 12px 0 8px; letter-spacing: 6px; line-height: 1.8;
+  text-shadow: 3px 3px 0 var(--red), 0 0 20px var(--purple), 0 0 40px rgba(124,58,237,0.4);
+}
+.story-body {
+  font-size: 13px; line-height: 2.6; color: var(--text); letter-spacing: 0.5px;
+}
+
+.tangdi-box {
+  background: #120518; border: 3px solid rgba(220,38,38,0.45); padding: 20px; margin-top: 14px;
+  box-shadow: inset 0 0 24px rgba(220,38,38,0.07), 0 0 14px rgba(220,38,38,0.2);
+  animation: fadeUp 0.4s ease;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+/* =========== PAGES =========== */
+.page { display: none; animation: pageIn 0.3s ease; }
+.page.active { display: block; }
+@keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+.star { position: absolute; background: #fff; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+
+<!-- 背景场景 -->
+<div class="scene">
+  <div class="sky"></div>
+  <div class="stars" id="stars"></div>
+  <div class="rain" id="rain"></div>
+  <!-- 像素城市 SVG -->
+  <svg class="city" viewBox="0 0 1400 420" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(124,58,237,0.2)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </linearGradient>
+    </defs>
+
+    <!-- 地面 -->
+    <rect x="0" y="402" width="1400" height="18" fill="#07060f"/>
+    <rect x="0" y="398" width="1400" height="6" fill="url(#glow)"/>
+
+    <!-- ===== 远景层（暗淡，营造纵深）===== -->
+    <rect x="20"  y="250" width="44"  height="152" fill="#0e0c20" opacity=".7"/>
+    <rect x="30"  y="264" width="8"   height="8"   fill="#f97316" opacity=".25"/>
+    <rect x="44"  y="270" width="8"   height="8"   fill="#a78bfa" opacity=".2"/>
+
+    <rect x="120" y="210" width="55"  height="192" fill="#0c0b1e" opacity=".7"/>
+    <rect x="130" y="224" width="10"  height="10"  fill="#2dd4bf" opacity=".2"/>
+    <rect x="148" y="240" width="10"  height="10"  fill="#dc2626" opacity=".25"/>
+
+    <rect x="320" y="180" width="70"  height="222" fill="#0e0c20" opacity=".6"/>
+    <rect x="332" y="196" width="10"  height="10"  fill="#fbbf24" opacity=".2"/>
+    <rect x="350" y="210" width="10"  height="10"  fill="#a78bfa" opacity=".15"/>
+    <rect x="368" y="196" width="10"  height="10"  fill="#f97316" opacity=".2"/>
+
+    <rect x="700" y="160" width="80"  height="242" fill="#0c0b1e" opacity=".6"/>
+    <rect x="712" y="178" width="12"  height="12"  fill="#dc2626" opacity=".2"/>
+    <rect x="732" y="192" width="12"  height="12"  fill="#2dd4bf" opacity=".15"/>
+    <rect x="752" y="178" width="12"  height="12"  fill="#fbbf24" opacity=".2"/>
+
+    <rect x="1050" y="200" width="60" height="202" fill="#0e0c20" opacity=".6"/>
+    <rect x="1060" y="216" width="10" height="10"  fill="#a78bfa" opacity=".2"/>
+    <rect x="1078" y="228" width="10" height="10"  fill="#f97316" opacity=".25"/>
+
+    <rect x="1250" y="230" width="55" height="172" fill="#0c0b1e" opacity=".7"/>
+    <rect x="1262" y="246" width="8"  height="8"   fill="#2dd4bf" opacity=".2"/>
+    <rect x="1278" y="258" width="8"  height="8"   fill="#dc2626" opacity=".2"/>
+
+    <!-- ===== 主景层 ===== -->
+
+    <!-- 楼A：左边细高楼 -->
+    <rect x="60"  y="140" width="52"  height="262" fill="#13112a"/>
+    <!-- 单侧霓虹竖条 -->
+    <rect x="60"  y="140" width="4"   height="262" fill="#dc2626" opacity=".35"/>
+    <!-- 稀疏窗 -->
+    <rect x="70"  y="158" width="14"  height="18"  fill="#f97316" opacity=".7"/>
+    <rect x="92"  y="164" width="10"  height="12"  fill="#fbbf24" opacity=".4"/>
+    <rect x="70"  y="210" width="14"  height="18"  fill="#a78bfa" opacity=".5"/>
+    <rect x="92"  y="230" width="10"  height="12"  fill="#2dd4bf" opacity=".35"/>
+    <rect x="70"  y="280" width="8"   height="8"   fill="#dc2626" opacity=".6"/>
+    <rect x="86"  y="310" width="14"  height="10"  fill="#f97316" opacity=".4"/>
+    <!-- 屋顶天线 -->
+    <rect x="82"  y="116" width="5"   height="26"  fill="#2a2550"/>
+    <rect x="78"  y="116" width="13"  height="3"   fill="#2a2550"/>
+
+    <!-- 楼B：矮胖楼 -->
+    <rect x="170" y="290" width="80"  height="112" fill="#1c1840"/>
+    <rect x="170" y="290" width="80"  height="4"   fill="#7c3aed" opacity=".5"/>
+    <rect x="180" y="306" width="16"  height="16"  fill="#fbbf24" opacity=".6"/>
+    <rect x="206" y="314" width="10"  height="10"  fill="#2dd4bf" opacity=".4"/>
+    <rect x="224" y="306" width="16"  height="16"  fill="#dc2626" opacity=".55"/>
+    <rect x="180" y="340" width="10"  height="10"  fill="#a78bfa" opacity=".4"/>
+    <rect x="224" y="346" width="12"  height="10"  fill="#f97316" opacity=".45"/>
+
+    <!-- 楼C：中高楼 带大招牌 -->
+    <rect x="248" y="110" width="85"  height="292" fill="#0f0d24"/>
+    <rect x="248" y="110" width="85"  height="5"   fill="#a78bfa" opacity=".4"/>
+    <!-- 招牌（大横条）-->
+    <rect x="254" y="140" width="73"  height="28"  fill="#1e0a30"/>
+    <rect x="254" y="140" width="73"  height="3"   fill="#dc2626" opacity=".8"/>
+    <rect x="254" y="165" width="73"  height="3"   fill="#dc2626" opacity=".8"/>
+    <!-- 窗 - 稀疏不规律 -->
+    <rect x="258" y="182" width="18"  height="12"  fill="#2dd4bf" opacity=".5"/>
+    <rect x="296" y="178" width="12"  height="16"  fill="#fbbf24" opacity=".4"/>
+    <rect x="258" y="230" width="10"  height="10"  fill="#f97316" opacity=".55"/>
+    <rect x="310" y="244" width="14"  height="10"  fill="#a78bfa" opacity=".4"/>
+    <rect x="272" y="290" width="18"  height="12"  fill="#dc2626" opacity=".5"/>
+    <rect x="298" y="318" width="10"  height="14"  fill="#2dd4bf" opacity=".4"/>
+    <!-- 屋顶水塔 -->
+    <rect x="272" y="78"  width="24"  height="34"  fill="#1a1535"/>
+    <rect x="268" y="110" width="32"  height="5"   fill="#252145"/>
+    <rect x="281" y="58"  width="5"   height="22"  fill="#2a2550"/>
+
+    <!-- 楼D：右侧窄高楼 -->
+    <rect x="400" y="70"  width="48"  height="332" fill="#13112a"/>
+    <rect x="444" y="70"  width="4"   height="332" fill="#2dd4bf" opacity=".25"/>
+    <rect x="408" y="90"  width="12"  height="16"  fill="#dc2626" opacity=".7"/>
+    <rect x="428" y="98"  width="10"  height="10"  fill="#f97316" opacity=".45"/>
+    <rect x="408" y="148" width="16"  height="12"  fill="#a78bfa" opacity=".5"/>
+    <rect x="428" y="180" width="10"  height="16"  fill="#fbbf24" opacity=".4"/>
+    <rect x="408" y="240" width="12"  height="12"  fill="#2dd4bf" opacity=".5"/>
+    <rect x="428" y="300" width="14"  height="10"  fill="#dc2626" opacity=".4"/>
+    <!-- 顶部红灯 -->
+    <rect x="420" y="60"  width="8"   height="12"  fill="#2a2550"/>
+    <rect x="418" y="56"  width="12"  height="6"   fill="#dc2626" opacity=".9"/>
+
+    <!-- 楼E：中央超高地标 -->
+    <rect x="500" y="20"  width="130" height="382" fill="#0a0818"/>
+    <!-- 侧面渐变 -->
+    <rect x="500" y="20"  width="6"   height="382" fill="#7c3aed" opacity=".2"/>
+    <rect x="624" y="20"  width="6"   height="382" fill="#dc2626" opacity=".2"/>
+    <!-- 大型招牌 -->
+    <rect x="508" y="50"  width="114" height="40"  fill="#160824"/>
+    <rect x="508" y="50"  width="114" height="4"   fill="#a78bfa" opacity=".7"/>
+    <rect x="508" y="86"  width="114" height="4"   fill="#a78bfa" opacity=".7"/>
+    <!-- 窗：不规则分布 -->
+    <rect x="512" y="105" width="20"  height="14"  fill="#f97316" opacity=".65"/>
+    <rect x="548" y="100" width="14"  height="20"  fill="#2dd4bf" opacity=".5"/>
+    <rect x="580" y="108" width="18"  height="12"  fill="#a78bfa" opacity=".55"/>
+    <rect x="612" y="105" width="10"  height="16"  fill="#fbbf24" opacity=".4"/>
+    <rect x="512" y="158" width="14"  height="14"  fill="#dc2626" opacity=".6"/>
+    <rect x="560" y="162" width="20"  height="10"  fill="#f97316" opacity=".4"/>
+    <rect x="600" y="155" width="14"  height="18"  fill="#2dd4bf" opacity=".5"/>
+    <rect x="520" y="220" width="10"  height="14"  fill="#fbbf24" opacity=".5"/>
+    <rect x="548" y="228" width="18"  height="10"  fill="#a78bfa" opacity=".45"/>
+    <rect x="590" y="215" width="14"  height="16"  fill="#dc2626" opacity=".55"/>
+    <rect x="616" y="230" width="10"  height="10"  fill="#f97316" opacity=".4"/>
+    <rect x="514" y="290" width="16"  height="12"  fill="#2dd4bf" opacity=".5"/>
+    <rect x="570" y="298" width="10"  height="14"  fill="#fbbf24" opacity=".4"/>
+    <rect x="608" y="285" width="14"  height="16"  fill="#dc2626" opacity=".5"/>
+    <!-- 屋顶尖塔 -->
+    <rect x="560" y="0"   width="10"  height="22"  fill="#2a2550"/>
+    <rect x="555" y="0"   width="20"  height="4"   fill="#2a2550"/>
+    <rect x="562" y="0"   width="6"   height="4"   fill="#dc2626" opacity=".9"/>
+
+    <!-- 楼F：右中等楼 -->
+    <rect x="680" y="160" width="70"  height="242" fill="#1a1535"/>
+    <rect x="680" y="160" width="4"   height="242" fill="#f97316" opacity=".3"/>
+    <rect x="690" y="178" width="16"  height="12"  fill="#fbbf24" opacity=".55"/>
+    <rect x="718" y="184" width="10"  height="10"  fill="#2dd4bf" opacity=".4"/>
+    <rect x="736" y="176" width="10"  height="16"  fill="#a78bfa" opacity=".5"/>
+    <rect x="690" y="240" width="10"  height="14"  fill="#dc2626" opacity=".6"/>
+    <rect x="730" y="252" width="14"  height="10"  fill="#f97316" opacity=".4"/>
+    <rect x="700" y="316" width="16"  height="10"  fill="#a78bfa" opacity=".4"/>
+
+    <!-- 楼G：右高楼 有外走廊线 -->
+    <rect x="800" y="55"  width="110" height="347" fill="#0f0d24"/>
+    <rect x="800" y="55"  width="110" height="5"   fill="#2dd4bf" opacity=".5"/>
+    <!-- 水平楼层线 -->
+    <rect x="800" y="120" width="110" height="3"   fill="#1e1c40"/>
+    <rect x="800" y="185" width="110" height="3"   fill="#1e1c40"/>
+    <rect x="800" y="250" width="110" height="3"   fill="#1e1c40"/>
+    <rect x="800" y="315" width="110" height="3"   fill="#1e1c40"/>
+    <!-- 窗 -->
+    <rect x="812" y="70"  width="14"  height="18"  fill="#dc2626" opacity=".7"/>
+    <rect x="846" y="76"  width="10"  height="12"  fill="#a78bfa" opacity=".5"/>
+    <rect x="878" y="68"  width="16"  height="20"  fill="#f97316" opacity=".55"/>
+    <rect x="894" y="80"  width="10"  height="10"  fill="#2dd4bf" opacity=".4"/>
+    <rect x="812" y="136" width="18"  height="12"  fill="#fbbf24" opacity=".5"/>
+    <rect x="860" y="130" width="12"  height="18"  fill="#dc2626" opacity=".45"/>
+    <rect x="892" y="138" width="10"  height="12"  fill="#a78bfa" opacity=".5"/>
+    <rect x="818" y="200" width="14"  height="14"  fill="#2dd4bf" opacity=".55"/>
+    <rect x="856" y="206" width="16"  height="10"  fill="#f97316" opacity=".4"/>
+    <rect x="888" y="198" width="14"  height="16"  fill="#fbbf24" opacity=".45"/>
+    <rect x="812" y="268" width="10"  height="14"  fill="#dc2626" opacity=".5"/>
+    <rect x="848" y="274" width="16"  height="10"  fill="#a78bfa" opacity=".4"/>
+    <rect x="886" y="262" width="14"  height="16"  fill="#2dd4bf" opacity=".5"/>
+    <!-- 水塔 -->
+    <rect x="838" y="22"  width="30"  height="36"  fill="#1a1535"/>
+    <rect x="834" y="55"  width="38"  height="6"   fill="#252145"/>
+    <rect x="851" y="0"   width="6"   height="24"  fill="#2a2550"/>
+
+    <!-- 楼H：右矮楼 -->
+    <rect x="958" y="280" width="65"  height="122" fill="#1c1840"/>
+    <rect x="958" y="280" width="65"  height="4"   fill="#f97316" opacity=".5"/>
+    <rect x="968" y="296" width="18"  height="14"  fill="#a78bfa" opacity=".55"/>
+    <rect x="998" y="300" width="12"  height="10"  fill="#dc2626" opacity=".5"/>
+    <rect x="968" y="336" width="10"  height="10"  fill="#2dd4bf" opacity=".4"/>
+    <rect x="996" y="340" width="14"  height="10"  fill="#fbbf24" opacity=".4"/>
+
+    <!-- 楼I：右中高楼 -->
+    <rect x="1070" y="120" width="88" height="282" fill="#13112a"/>
+    <rect x="1154" y="120" width="4"  height="282" fill="#a78bfa" opacity=".25"/>
+    <rect x="1080" y="138" width="16" height="14"  fill="#2dd4bf" opacity=".6"/>
+    <rect x="1108" y="144" width="10" height="10"  fill="#dc2626" opacity=".45"/>
+    <rect x="1134" y="136" width="14" height="18"  fill="#f97316" opacity=".55"/>
+    <rect x="1082" y="200" width="12" height="14"  fill="#fbbf24" opacity=".5"/>
+    <rect x="1124" y="208" width="16" height="10"  fill="#a78bfa" opacity=".4"/>
+    <rect x="1080" y="270" width="10" height="12"  fill="#dc2626" opacity=".5"/>
+    <rect x="1136" y="278" width="14" height="10"  fill="#2dd4bf" opacity=".4"/>
+    <!-- 招牌 -->
+    <rect x="1076" y="310" width="76" height="22"  fill="#1e0a30"/>
+    <rect x="1076" y="310" width="76" height="3"   fill="#dc2626" opacity=".7"/>
+    <rect x="1076" y="329" width="76" height="3"   fill="#dc2626" opacity=".7"/>
+    <!-- 天线 -->
+    <rect x="1108" y="96"  width="5"  height="26"  fill="#2a2550"/>
+    <rect x="1104" y="96"  width="13" height="3"   fill="#2a2550"/>
+
+    <!-- 楼J：最右高楼 -->
+    <rect x="1210" y="80"  width="95" height="322" fill="#0f0d24"/>
+    <rect x="1210" y="80"  width="5"  height="322" fill="#dc2626" opacity=".2"/>
+    <rect x="1218" y="100" width="18" height="14"  fill="#f97316" opacity=".65"/>
+    <rect x="1252" y="106" width="12" height="10"  fill="#a78bfa" opacity=".5"/>
+    <rect x="1280" y="98"  width="16" height="16"  fill="#2dd4bf" opacity=".55"/>
+    <rect x="1218" y="162" width="12" height="16"  fill="#fbbf24" opacity=".5"/>
+    <rect x="1256" y="170" width="16" height="10"  fill="#dc2626" opacity=".5"/>
+    <rect x="1284" y="158" width="12" height="16"  fill="#f97316" opacity=".4"/>
+    <rect x="1220" y="238" width="16" height="12"  fill="#a78bfa" opacity=".5"/>
+    <rect x="1258" y="246" width="10" height="10"  fill="#2dd4bf" opacity=".4"/>
+    <rect x="1282" y="232" width="14" height="16"  fill="#fbbf24" opacity=".45"/>
+    <rect x="1218" y="310" width="10" height="14"  fill="#dc2626" opacity=".5"/>
+    <rect x="1268" y="316" width="16" height="10"  fill="#f97316" opacity=".4"/>
+    <!-- 屋顶 -->
+    <rect x="1246" y="50"  width="22" height="32"  fill="#1a1535"/>
+    <rect x="1242" y="80"  width="30" height="5"   fill="#252145"/>
+    <rect x="1255" y="36"  width="5"  height="16"  fill="#2a2550"/>
+    <rect x="1253" y="34"  width="9"  height="4"   fill="#dc2626" opacity=".9"/>
+
+    <!-- 楼K：最右矮楼补边 -->
+    <rect x="1350" y="240" width="50" height="162" fill="#1c1840"/>
+    <rect x="1350" y="240" width="50" height="4"   fill="#2dd4bf" opacity=".4"/>
+    <rect x="1358" y="256" width="12" height="12"  fill="#a78bfa" opacity=".5"/>
+    <rect x="1378" y="262" width="10" height="10"  fill="#f97316" opacity=".4"/>
+    <rect x="1360" y="300" width="14" height="10"  fill="#dc2626" opacity=".45"/>
+  </svg>
+</div>
+<div class="scanlines"></div>
+
+<!-- ===== APP ===== -->
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <span class="header-logo">🐢</span>
+    <div class="header-title">海 龟 汤</div>
+    <div class="header-sub">· AI HORROR SOUP GENERATOR ·</div>
+  </div>
+
+  <!-- PAGE 1 -->
+  <div class="page active" id="page1">
+    <button class="px-btn px-btn-main" onclick="goTo(2)" style="margin-bottom:20px;">
+      ▶ START：烹 饪 新 的 海 龟 汤
+    </button>
+    <div class="px-hr">HISTORY</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page" id="page2">
+    <div class="px-panel">
+      <div class="px-panel-title">▸ 配 方 输 入</div>
+      <div class="input-group">
+        <label class="input-label">🔑 关键词 <em>（各最多4字）</em></label>
+        <div class="kw-row">
+          <input type="text" id="kw1" placeholder="词一" maxlength="4">
+          <input type="text" id="kw2" placeholder="词二" maxlength="4">
+          <input type="text" id="kw3" placeholder="词三" maxlength="4">
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">🎭 风格 <em>（最多6字）</em></label>
+        <input type="text" id="style" placeholder="如：中式恐怖、侦探推理..." maxlength="6">
+      </div>
+      <div id="submit-area">
+        <button class="px-btn px-btn-main" onclick="submitGenerate()">🍲 烹 饪 海 龟 汤</button>
+      </div>
+      <div id="loading-area" style="display:none;">
+        <div class="loading-center">
+          <span class="cauldron-anim">🫕</span>
+          <div class="loading-pct" id="loading-text">海龟汤进度 0%</div>
+          <div class="px-progress-wrap">
+            <div class="px-progress-fill" id="progress-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-sub">COOKING...</div>
+        </div>
+        <button class="px-btn px-btn-reset" onclick="resetPage2()">✕ 重 置 / RESET</button>
+      </div>
+    </div>
+    <button class="px-btn px-btn-back" onclick="goTo(1)" style="margin-top:6px;">← 返 回</button>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div class="page" id="page3">
+    <div class="px-panel" style="border-color:rgba(45,212,191,0.4);">
+      <p class="recipe-text" id="recipe-info-text"></p>
+    </div>
+    <div class="px-panel">
+      <div class="px-panel-title">📖 标 题</div>
+      <div class="story-title-display" id="result-title"></div>
+    </div>
+    <div class="px-panel">
+      <div class="px-panel-title">🌊 汤 面</div>
+      <p class="story-body" id="result-tangmian"></p>
+    </div>
+    <div class="px-panel" style="border-color:rgba(220,38,38,0.4);">
+      <div id="reveal-btn-wrap">
+        <button class="px-btn px-btn-reveal" onclick="revealTangdi()">⚠ 揭 晓 汤 底</button>
+      </div>
+      <div id="tangdi-content" style="display:none;">
+        <div class="px-panel-title" style="color:var(--red2);">🔮 汤 底</div>
+        <div class="tangdi-box">
+          <p class="story-body" id="result-tangdi"></p>
+        </div>
+      </div>
+    </div>
+    <button class="px-btn px-btn-back" onclick="backToHome()" style="margin-top:6px;">← 返 回 首 页</button>
+  </div>
+</div>
+
+<script>
+const KIMI_API_URL = '/api/generate';
+
+let currentResult = null, abortController = null;
+
+function initScene() {
+  const stars = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() > 0.8 ? 4 : 2;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*55}%;opacity:${0.3+Math.random()*0.7};animation:blink ${1+Math.random()*3}s step-end infinite;animation-delay:${Math.random()*3}s`;
+    stars.appendChild(s);
+  }
+  const rain = document.getElementById('rain');
+  for (let i = 0; i < 50; i++) {
+    const r = document.createElement('div');
+    r.className = 'raindrop';
+    r.style.cssText = `left:${Math.random()*100}%;height:${30+Math.random()*60}px;animation-duration:${0.5+Math.random()*0.8}s;animation-delay:${Math.random()*2}s`;
+    rain.appendChild(r);
+  }
+}
+
+function getHistory() { try { return JSON.parse(localStorage.getItem('hgt_v2') || '[]'); } catch { return []; } }
+function saveHistory(item) {
+  const h = getHistory(); h.unshift(item);
+  localStorage.setItem('hgt_v2', JSON.stringify(h.slice(0, 50)));
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function goTo(n) {
+  if (n === 2) { ['kw1','kw2','kw3','style'].forEach(id => document.getElementById(id).value = ''); }
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page'+n).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const h = getHistory();
+  if (!h.length) {
+    list.innerHTML = `<div class="history-empty"><span class="empty-skull">💀</span><div class="line1">还没有烹饪过海龟汤</div><div class="line2">▶ 点击上方按钮开始创作</div></div>`;
+    return;
+  }
+  list.innerHTML = h.map((item, i) => `
+    <div class="hist-item" onclick="viewHistory(${i})">
+      <div class="hist-title">${esc(item.title)}</div>
+      <div class="hist-tags">
+        <span class="px-tag">${esc(item.kw1)}</span>
+        <span class="px-tag">${esc(item.kw2)}</span>
+        <span class="px-tag">${esc(item.kw3)}</span>
+        <span class="px-tag st">${esc(item.style)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function viewHistory(i) { currentResult = getHistory()[i]; renderPage3(currentResult); goTo(3); }
+
+async function submitGenerate() {
+  const kw1 = document.getElementById('kw1').value.trim();
+  const kw2 = document.getElementById('kw2').value.trim();
+  const kw3 = document.getElementById('kw3').value.trim();
+  const style = document.getElementById('style').value.trim();
+  if (!kw1||!kw2||!kw3||!style) { alert('请填写全部3个关键词和风格！'); return; }
+
+  document.getElementById('submit-area').style.display = 'none';
+  document.getElementById('loading-area').style.display = 'block';
+  abortController = new AbortController();
+
+  let progress = 0;
+  const iv = setInterval(() => {
+    if (progress < 88) { progress += Math.random()*7+2; if(progress>88)progress=88; setProgress(Math.floor(progress)); }
+  }, 350);
+
+  try {
+    const res = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kw1, kw2, kw3, style }),
+      signal: abortController.signal
+    });
+    clearInterval(iv);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const errMsg = errBody?.error || res.statusText || '未知错误';
+      throw new Error(errMsg);
+    }
+    const data = await res.json();
+    const text = data.text || '';
+    if (!text) throw new Error('模型返回内容为空，请重试');
+    setProgress(100);
+    const result = parseResult(text, kw1, kw2, kw3, style);
+    currentResult = result; saveHistory(result);
+    setTimeout(() => { renderPage3(result); goTo(3); resetLoading(); }, 500);
+  } catch(e) {
+    clearInterval(iv);
+    if (e.name !== 'AbortError') alert('生成失败：' + e.message);
+    resetLoading();
+  }
+}
+
+function setProgress(v) {
+  document.getElementById('loading-text').textContent = `海龟汤进度 ${v}%`;
+  document.getElementById('progress-bar').style.width = v + '%';
+}
+function resetLoading() {
+  document.getElementById('submit-area').style.display = 'block';
+  document.getElementById('loading-area').style.display = 'none';
+  setProgress(0);
+}
+function resetPage2() {
+  if (abortController) abortController.abort();
+  resetLoading();
+  ['kw1','kw2','kw3','style'].forEach(id => document.getElementById(id).value = '');
+}
+function parseResult(text, kw1, kw2, kw3, style) {
+  let title='未知标题', tangmian='', tangdi='';
+  const t = text.match(/标题[：:]\s*(.+)/); if (t) title = t[1].trim();
+  const m = text.match(/【汤面】\s*([\s\S]*?)(?=【汤底】|$)/); if (m) tangmian = m[1].trim();
+  const d = text.match(/【汤底】\s*([\s\S]*?)$/); if (d) tangdi = d[1].trim();
+  return { title, tangmian, tangdi, kw1, kw2, kw3, style, createdAt: Date.now() };
+}
+function renderPage3(r) {
+  document.getElementById('recipe-info-text').innerHTML =
+    `根据你的配方 <span class="kw">${esc(r.kw1)}</span>、<span class="kw">${esc(r.kw2)}</span>、<span class="kw">${esc(r.kw3)}</span>，用 <span class="st">${esc(r.style)}</span> 小料制作而成的海龟汤`;
+  document.getElementById('result-title').textContent = r.title;
+  document.getElementById('result-tangmian').textContent = r.tangmian;
+  document.getElementById('result-tangdi').textContent = r.tangdi;
+  document.getElementById('reveal-btn-wrap').style.display = 'block';
+  document.getElementById('tangdi-content').style.display = 'none';
+}
+function revealTangdi() {
+  document.getElementById('reveal-btn-wrap').style.display = 'none';
+  document.getElementById('tangdi-content').style.display = 'block';
+}
+function backToHome() { goTo(1); renderHistory(); }
+
+initScene();
+renderHistory();
+</script>
+</body>
+</html>
