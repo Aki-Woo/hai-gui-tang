@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>海龟汤生成器</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -22,8 +22,8 @@
   --yellow: #fbbf24;
   --text:   #e2e0ff;
   --text2:  #8b85cc;
-  --px:     'Press Start 2P', monospace;
-  --sans:   'Press Start 2P', monospace;
+  --px:     'Courier New', 'Lucida Console', monospace;
+  --sans:   'Courier New', 'Lucida Console', monospace;
 }
 
 body {
@@ -337,6 +337,117 @@ input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px
 @keyframes pageIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
 .star { position: absolute; background: #fff; image-rendering: pixelated; }
+
+/* =========== 单人模式按钮 =========== */
+.px-btn-solo {
+  background: #071a1a;
+  color: var(--teal);
+  border: 4px solid var(--teal);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #020d0d, 0 0 16px rgba(45,212,191,0.3), inset 0 1px 0 rgba(45,212,191,0.12);
+  text-shadow: 0 0 10px var(--teal);
+}
+.px-btn-solo:hover:not(:disabled) {
+  background: #0c2a2a;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #020d0d, 0 0 28px rgba(45,212,191,0.5), inset 0 1px 0 rgba(45,212,191,0.12);
+}
+.px-btn-solo:active:not(:disabled) { transform: translate(3px,3px); box-shadow: 0 0 0 1px var(--bg), 2px 2px 0 #020d0d; }
+.px-btn-solo:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sub { font-size: 10px; letter-spacing: 2px; opacity: 0.65; margin-top: 6px; display: block; }
+
+/* =========== 难度选择 =========== */
+.diff-row { display: flex; gap: 12px; }
+.diff-opt { flex: 1; }
+.diff-opt input[type="radio"] { display: none; }
+.diff-opt label {
+  display: block; text-align: center; padding: 12px 8px;
+  border: 3px solid var(--border); color: var(--text2);
+  font-size: 12px; letter-spacing: 3px; cursor: pointer;
+  transition: all 0.1s; box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+  font-family: var(--px);
+}
+.diff-opt input[type="radio"]:checked + label {
+  border-color: var(--teal); color: var(--teal);
+  background: rgba(45,212,191,0.08);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4), 0 0 10px rgba(45,212,191,0.2);
+}
+.diff-opt label:hover { border-color: var(--purple); color: var(--purple); }
+
+/* =========== 单人加载 =========== */
+.px-progress-fill-teal {
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--teal) 0, var(--teal) 10px, var(--purple) 10px, var(--purple) 16px);
+  transition: width 0.3s;
+  box-shadow: 0 0 8px var(--teal);
+}
+
+/* =========== 案件面板 =========== */
+.case-panel {
+  background: #080d1a; border: 3px solid rgba(45,212,191,0.35); padding: 20px; margin-bottom: 16px; position: relative;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5), inset 0 0 20px rgba(45,212,191,0.04);
+}
+.case-panel::before { content:'▪'; position:absolute; top:-2px; left:-2px; color:var(--teal); font-size:9px; line-height:1; }
+.case-panel::after  { content:'▪'; position:absolute; top:-2px; right:-2px; color:var(--teal); font-size:9px; line-height:1; }
+.case-label { font-size: 10px; color: var(--teal); letter-spacing: 5px; margin-bottom: 12px; }
+
+/* =========== 对话气泡 =========== */
+.chat-wrap {
+  display: flex; flex-direction: column; gap: 14px;
+  max-height: 400px; overflow-y: auto;
+  padding: 4px 2px 4px 0; margin-bottom: 16px;
+}
+.chat-wrap::-webkit-scrollbar { width: 4px; }
+.chat-wrap::-webkit-scrollbar-track { background: #080818; }
+.chat-wrap::-webkit-scrollbar-thumb { background: var(--border); }
+
+.msg-ai { display: flex; align-items: flex-start; gap: 10px; }
+.msg-ai .msg-icon { font-size: 22px; flex-shrink: 0; margin-top: 4px; filter: drop-shadow(0 0 6px var(--purple)); }
+.msg-ai .msg-inner { flex: 1; }
+.msg-ai .msg-label { font-size: 9px; letter-spacing: 2px; color: var(--purple); margin-bottom: 5px; }
+.msg-ai .msg-bubble {
+  background: #1c1840; border: 2px solid rgba(167,139,250,0.35);
+  border-left: 4px solid var(--purple); padding: 12px 16px;
+  font-size: 13px; line-height: 2; color: var(--text);
+  animation: fadeUp 0.3s ease;
+}
+
+.msg-player { display: flex; align-items: flex-start; gap: 10px; flex-direction: row-reverse; }
+.msg-player .msg-icon { font-size: 22px; flex-shrink: 0; margin-top: 4px; filter: drop-shadow(0 0 6px var(--red)); }
+.msg-player .msg-inner { flex: 1; }
+.msg-player .msg-label { font-size: 9px; letter-spacing: 2px; color: var(--red2); margin-bottom: 5px; text-align: right; }
+.msg-player .msg-bubble {
+  background: #1a0808; border: 2px solid rgba(220,38,38,0.35);
+  border-right: 4px solid var(--red); padding: 12px 16px;
+  font-size: 13px; line-height: 2; color: var(--text);
+  animation: fadeUp 0.3s ease;
+}
+
+.msg-thinking .msg-bubble { color: var(--text2); font-style: italic; }
+
+/* 输入行 */
+.chat-input-row { display: flex; gap: 10px; }
+.chat-input-row input { flex: 1; }
+.chat-send-btn {
+  background: #071a1a; color: var(--teal);
+  border: 3px solid var(--teal); font-family: var(--px);
+  font-size: 12px; letter-spacing: 2px; padding: 14px 18px;
+  cursor: pointer; white-space: nowrap;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+  flex-shrink: 0; transition: transform 0.05s;
+}
+.chat-send-btn:hover:not(:disabled) { background: #0c2828; transform: translate(-1px,-1px); }
+.chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 问题计数 */
+.q-count-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.q-count-label { font-size: 10px; color: var(--text2); letter-spacing: 2px; }
+.q-count-num { font-size: 11px; color: var(--teal); letter-spacing: 2px; }
+
+/* 揭晓区 */
+.solo-reveal-wrap { margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -578,8 +689,13 @@ input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px
 
   <!-- PAGE 1 -->
   <div class="page active" id="page1">
-    <button class="px-btn px-btn-main" onclick="goTo(2)" style="margin-bottom:20px;">
-      ▶ START：烹 饪 新 的 海 龟 汤
+    <button class="px-btn px-btn-main" onclick="goTo(2)" style="margin-bottom:14px;">
+      👥 多 人 模 式（主 持 人 版）
+      <span class="btn-sub">输入关键词 · AI生成谜题 · 主持人掌控汤底</span>
+    </button>
+    <button class="px-btn px-btn-solo" onclick="goTo(4)" style="margin-bottom:24px;">
+      🕵️ 单 人 侦 探 模 式
+      <span class="btn-sub">与AI对话 · 逐步破案 · 你就是侦探</span>
     </button>
     <div class="px-hr">HISTORY</div>
     <div id="history-list"></div>
@@ -645,12 +761,117 @@ input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px
     </div>
     <button class="px-btn px-btn-back" onclick="backToHome()" style="margin-top:6px;">← 返 回 首 页</button>
   </div>
+
+  <!-- PAGE 4：单人配置页 -->
+  <div class="page" id="page4">
+    <div class="px-panel">
+      <div class="px-panel-title">🕵️ 侦 探 档 案 配 置</div>
+      <div class="input-group">
+        <label class="input-label">🔑 关键词 <em>（各最多4字）</em></label>
+        <div class="kw-row">
+          <input type="text" id="s-kw1" placeholder="词一" maxlength="4">
+          <input type="text" id="s-kw2" placeholder="词二" maxlength="4">
+          <input type="text" id="s-kw3" placeholder="词三" maxlength="4">
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="input-label">🎭 风格 <em>（最多6字）</em></label>
+        <input type="text" id="s-style" placeholder="如：中式恐怖、悬疑推理..." maxlength="6">
+      </div>
+      <div class="input-group">
+        <label class="input-label">⚡ 难 度 <em>（影响提示丰富程度）</em></label>
+        <div class="diff-row">
+          <div class="diff-opt">
+            <input type="radio" name="s-diff" id="d-easy" value="easy">
+            <label for="d-easy">🌱 简 单</label>
+          </div>
+          <div class="diff-opt">
+            <input type="radio" name="s-diff" id="d-normal" value="normal" checked>
+            <label for="d-normal">🔥 普 通</label>
+          </div>
+          <div class="diff-opt">
+            <input type="radio" name="s-diff" id="d-hard" value="hard">
+            <label for="d-hard">💀 困 难</label>
+          </div>
+        </div>
+      </div>
+      <div id="solo-submit-area">
+        <button class="px-btn px-btn-solo" onclick="submitSoloGenerate()">🕵️ 开 始 破 案</button>
+      </div>
+      <div id="solo-loading-area" style="display:none;">
+        <div class="loading-center">
+          <span class="cauldron-anim">🔍</span>
+          <div class="loading-pct" id="solo-loading-text">案件生成中 0%</div>
+          <div class="px-progress-wrap">
+            <div class="px-progress-fill-teal" id="solo-progress-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-sub">GENERATING CASE...</div>
+        </div>
+      </div>
+    </div>
+    <button class="px-btn px-btn-back" onclick="goTo(1)" style="margin-top:6px;">← 返 回</button>
+  </div>
+
+  <!-- PAGE 5：对话推理页 -->
+  <div class="page" id="page5">
+    <!-- 进度区 -->
+    <div class="px-panel" style="padding:16px 24px; margin-bottom:12px;">
+      <div class="q-count-row">
+        <div class="q-count-label">🕵️ 侦 探 模 式 · 案 件 进 行 中</div>
+        <div class="q-count-num" id="q-count-display">已 提 问 0 / 20</div>
+      </div>
+      <div class="px-progress-wrap" style="margin-bottom:0;">
+        <div class="px-progress-fill-teal" id="q-progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- 案件面板 -->
+    <div class="case-panel">
+      <div class="case-label">📋 案 件 描 述</div>
+      <div style="font-size:13px;color:var(--text2);letter-spacing:1px;margin-bottom:8px;" id="solo-case-meta"></div>
+      <p class="story-body" id="solo-tangmian"></p>
+    </div>
+
+    <!-- 对话区 -->
+    <div class="px-panel">
+      <div class="px-panel-title">💬 推 理 对 话</div>
+      <div class="chat-wrap" id="chat-messages"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="提问（如：死者是男性吗？）" maxlength="80" onkeydown="if(event.key==='Enter')sendQuestion()">
+        <button class="chat-send-btn" id="chat-send-btn" onclick="sendQuestion()">发 送 ▶</button>
+      </div>
+    </div>
+
+    <!-- 揭晓区 -->
+    <div class="solo-reveal-wrap">
+      <div id="solo-reveal-btn-wrap">
+        <button class="px-btn px-btn-reveal" onclick="revealSoloTangdi()">⚠ 我 已 破 案 · 揭 晓 汤 底</button>
+      </div>
+      <div id="solo-tangdi-content" style="display:none;">
+        <div class="px-panel" style="border-color:rgba(220,38,38,0.4);">
+          <div class="px-panel-title" style="color:var(--red2);">🔮 汤 底 · 真 相 大 白</div>
+          <div class="tangdi-box">
+            <p class="story-body" id="solo-tangdi"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="px-btn px-btn-back" onclick="backToHome()" style="margin-top:14px;">← 返 回 首 页</button>
+  </div>
 </div>
 
 <script>
-const KIMI_API_URL = '/api/generate';
+const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
+const KIMI_API_KEY = 'sk-vsUvDUFg1kGQBseLQ2t0CKGpNrAO5wspgJnjIZPXRhVrtXGt';
 
 let currentResult = null, abortController = null;
+
+// =========== 单人模式状态 ===========
+let soloCase = null;        // { title, tangmian, tangdi, kw1, kw2, kw3, style, difficulty }
+let chatHistory = [];       // openai messages 格式，传给API
+let questionCount = 0;
+const MAX_QUESTIONS = 20;
 
 function initScene() {
   const stars = document.getElementById('stars');
@@ -678,6 +899,7 @@ function saveHistory(item) {
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function goTo(n) {
   if (n === 2) { ['kw1','kw2','kw3','style'].forEach(id => document.getElementById(id).value = ''); }
+  if (n === 4) { ['s-kw1','s-kw2','s-kw3','s-style'].forEach(id => document.getElementById(id).value = ''); document.getElementById('d-normal').checked = true; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page'+n).classList.add('active');
   window.scrollTo(0, 0);
@@ -720,21 +942,51 @@ async function submitGenerate() {
     if (progress < 88) { progress += Math.random()*7+2; if(progress>88)progress=88; setProgress(Math.floor(progress)); }
   }, 350);
 
+  const SYSTEM_PROMPT = `你是一个擅长创作情境推理游戏（海龟汤）的故事创作者。根据用户提供的3个关键词和1个风格标签，创作一个完整的海龟汤谜题。
+
+创作原则：
+1. 一层反转，干净有力，不要多层嵌套
+2. 细节一一对应，汤面每个异常汤底都要解释
+3. 日常语言误读——同一词/事有不同含义（如"娃娃"=新生儿弟弟）
+4. 恐怖来自天真与残酷的反差，不靠血腥超自然
+5. 真相可通过"是不是"问题推理
+6. 严格按指定风格调整叙事
+
+示例：
+标题：真娃娃
+【汤面】同学们的娃娃都好逼真啊，可是我不羡慕！第二天上学，我刚把书包放在教室，老师就说今天要出去做志愿活动。放学后，妈妈却疯了。
+【汤底】因为我的妈妈刚刚给我生弟，我有更逼真的真人娃娃。我把弟弟装在书包里带去学校，老师说外出志愿活动。外出了一整天，回来打开书包，弟弟已窒息而死，妈妈疯了。
+
+严格按此格式输出，不要额外说明：
+标题：[标题]
+【汤面】
+[内容]
+【汤底】
+[内容]`;
+
   try {
     const res = await fetch(KIMI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kw1, kw2, kw3, style }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'kimi-k2.6',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `关键词1：${kw1}\n关键词2：${kw2}\n关键词3：${kw3}\n风格：${style}` }
+        ],
+        max_tokens: 2000,
+        thinking: { type: 'disabled' }
+      }),
       signal: abortController.signal
     });
     clearInterval(iv);
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      const errMsg = errBody?.error || res.statusText || '未知错误';
-      throw new Error(errMsg);
+      const errMsg = errBody?.error?.message || res.statusText || '未知错误';
+      throw new Error(`API错误 ${res.status}: ${errMsg}`);
     }
     const data = await res.json();
-    const text = data.text || '';
+    const text = (data.choices?.[0]?.message?.content || '').trim();
     if (!text) throw new Error('模型返回内容为空，请重试');
     setProgress(100);
     const result = parseResult(text, kw1, kw2, kw3, style);
@@ -782,6 +1034,242 @@ function revealTangdi() {
   document.getElementById('tangdi-content').style.display = 'block';
 }
 function backToHome() { goTo(1); renderHistory(); }
+
+// =========== 单人模式：生成案件 ===========
+async function submitSoloGenerate() {
+  const kw1 = document.getElementById('s-kw1').value.trim();
+  const kw2 = document.getElementById('s-kw2').value.trim();
+  const kw3 = document.getElementById('s-kw3').value.trim();
+  const style = document.getElementById('s-style').value.trim();
+  const difficulty = document.querySelector('input[name="s-diff"]:checked')?.value || 'normal';
+  if (!kw1||!kw2||!kw3||!style) { alert('请填写全部3个关键词和风格！'); return; }
+
+  document.getElementById('solo-submit-area').style.display = 'none';
+  document.getElementById('solo-loading-area').style.display = 'block';
+
+  let progress = 0;
+  const iv = setInterval(() => {
+    if (progress < 88) { progress += Math.random()*7+2; if(progress>88)progress=88; setSoloProgress(Math.floor(progress)); }
+  }, 350);
+
+  // 生成谜题用的 prompt（与多人版一致，完整汤面+汤底都生成）
+  const GEN_PROMPT = `你是一个擅长创作情境推理游戏（海龟汤）的故事创作者。根据用户提供的3个关键词和1个风格标签，创作一个完整的海龟汤谜题，用于单人侦探推理游戏。
+
+创作原则：
+1. 一层反转，干净有力，不要多层嵌套
+2. 细节一一对应，汤面每个异常汤底都要解释
+3. 日常语言误读——同一词/事有不同含义
+4. 真相必须可通过"是/否"问题一步步推理出来
+5. 汤底逻辑严密，不依赖超自然元素
+6. 严格按指定风格调整叙事
+
+严格按此格式输出，不要额外说明：
+标题：[标题]
+【汤面】
+[内容]
+【汤底】
+[内容]`;
+
+  try {
+    const res = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'kimi-k2.6',
+        messages: [
+          { role: 'system', content: GEN_PROMPT },
+          { role: 'user', content: `关键词1：${kw1}\n关键词2：${kw2}\n关键词3：${kw3}\n风格：${style}` }
+        ],
+        max_tokens: 2000,
+        thinking: { type: 'disabled' }
+      })
+    });
+    clearInterval(iv);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(`API错误 ${res.status}: ${errBody?.error?.message || res.statusText}`);
+    }
+    const data = await res.json();
+    const text = (data.choices?.[0]?.message?.content || '').trim();
+    if (!text) throw new Error('模型返回内容为空，请重试');
+    setSoloProgress(100);
+
+    const parsed = parseResult(text, kw1, kw2, kw3, style);
+    soloCase = { ...parsed, difficulty };
+    setTimeout(() => { startSoloGame(); resetSoloLoading(); }, 500);
+  } catch(e) {
+    clearInterval(iv);
+    alert('案件生成失败：' + e.message);
+    resetSoloLoading();
+  }
+}
+
+function setSoloProgress(v) {
+  document.getElementById('solo-loading-text').textContent = `案件生成中 ${v}%`;
+  document.getElementById('solo-progress-bar').style.width = v + '%';
+}
+function resetSoloLoading() {
+  document.getElementById('solo-submit-area').style.display = 'block';
+  document.getElementById('solo-loading-area').style.display = 'none';
+  setSoloProgress(0);
+}
+
+// =========== 单人模式：进入对话页 ===========
+function startSoloGame() {
+  questionCount = 0;
+  chatHistory = [];
+
+  // 主持人系统 prompt（不同于生成prompt，专门负责答疑引导）
+  const diffHint = {
+    easy:   '【难度：简单】你可以适度给出额外提示，帮助玩家朝正确方向思考，比如"你的问题很接近了"或"想想一开始发生了什么"。',
+    normal: '【难度：普通】只在玩家问到关键节点时给一句模糊提示，如"这个角度值得深入"，其余严格回答是/否/无关。',
+    hard:   '【难度：困难】严格只回答「是」「否」「无关」三个字，绝不给任何额外提示或暗示。'
+  };
+  const sysPrompt = `你是一个海龟汤推理游戏的专业主持人。你已经知道了这道海龟汤的完整真相（汤底），你的任务是引导玩家通过"是非问题"一步步推理出真相。
+
+【汤面（玩家可见的谜题）】
+${soloCase.tangmian}
+
+【汤底（你知道的真相，绝对不能直接告诉玩家）】
+${soloCase.tangdi}
+
+【你的回答规则】
+1. 玩家每次只会问一个"是非问题"，你只能回答：「是」「否」「无关」之一。
+2. 在回答后，可以附加一句话（不超过15字）作为引导，但不能直接透露真相。
+3. 如果玩家的问题不是是非题、或者太模糊，提醒他换一种问法。
+4. 如果玩家已基本猜到真相，可以说「你非常接近了，再想想」。
+5. 绝对禁止主动透露汤底内容。
+${diffHint[soloCase.difficulty] || diffHint.normal}
+
+回复格式：直接给答案，简洁。例如：「是的。」或「否。」或「无关。这个方向可以再想想。」`;
+
+  chatHistory = [{ role: 'system', content: sysPrompt }];
+
+  // 渲染page5
+  document.getElementById('solo-case-meta').innerHTML =
+    `配方：<span style="color:var(--teal)">${esc(soloCase.kw1)}</span> · <span style="color:var(--teal)">${esc(soloCase.kw2)}</span> · <span style="color:var(--teal)">${esc(soloCase.kw3)}</span> &nbsp;|&nbsp; 风格：<span style="color:var(--orange)">${esc(soloCase.style)}</span>`;
+  document.getElementById('solo-tangmian').textContent = soloCase.tangmian;
+  document.getElementById('solo-tangdi').textContent = soloCase.tangdi;
+  document.getElementById('solo-reveal-btn-wrap').style.display = 'block';
+  document.getElementById('solo-tangdi-content').style.display = 'none';
+  document.getElementById('chat-input').value = '';
+
+  updateQCount();
+  renderChatMessages();
+
+  // 初始AI开场白
+  appendAiMsg('案件已就绪。请用「是非问题」向我提问，我只回答「是」「否」或「无关」。准备好了吗？');
+
+  goTo(5);
+}
+
+// =========== 单人模式：发送问题 ===========
+async function sendQuestion() {
+  const input = document.getElementById('chat-input');
+  const q = input.value.trim();
+  if (!q) return;
+  if (questionCount >= MAX_QUESTIONS) { alert('已达提问上限！请根据已有线索作出判断，或直接揭晓汤底。'); return; }
+
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('chat-send-btn').disabled = true;
+
+  appendPlayerMsg(q);
+  questionCount++;
+  updateQCount();
+
+  chatHistory.push({ role: 'user', content: q });
+
+  // AI 思考占位
+  const thinkId = appendThinkingMsg();
+
+  try {
+    const res = await fetch(KIMI_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
+      body: JSON.stringify({
+        model: 'kimi-k2.6',
+        messages: chatHistory,
+        max_tokens: 200,
+        thinking: { type: 'disabled' }
+      })
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(`${res.status}: ${errBody?.error?.message || res.statusText}`);
+    }
+    const data = await res.json();
+    const reply = (data.choices?.[0]?.message?.content || '').trim();
+    chatHistory.push({ role: 'assistant', content: reply });
+    removeThinkingMsg(thinkId);
+    appendAiMsg(reply);
+  } catch(e) {
+    removeThinkingMsg(thinkId);
+    appendAiMsg('⚠ 网络异常，请重试。（' + e.message + '）');
+  }
+
+  input.disabled = false;
+  document.getElementById('chat-send-btn').disabled = false;
+  input.focus();
+  scrollChatToBottom();
+}
+
+// =========== 对话渲染工具函数 ===========
+function renderChatMessages() {
+  document.getElementById('chat-messages').innerHTML = '';
+}
+
+function appendAiMsg(text) {
+  const wrap = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'msg-ai';
+  el.innerHTML = `<span class="msg-icon">🤖</span><div class="msg-inner"><div class="msg-label">[ AI · 案件主持 ]</div><div class="msg-bubble">${esc(text)}</div></div>`;
+  wrap.appendChild(el);
+  scrollChatToBottom();
+}
+
+function appendPlayerMsg(text) {
+  const wrap = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = 'msg-player';
+  el.innerHTML = `<span class="msg-icon">🕵️</span><div class="msg-inner"><div class="msg-label">[ 侦探 · 你 ]</div><div class="msg-bubble">${esc(text)}</div></div>`;
+  wrap.appendChild(el);
+  scrollChatToBottom();
+}
+
+let thinkingIdCounter = 0;
+function appendThinkingMsg() {
+  const wrap = document.getElementById('chat-messages');
+  const id = 'thinking-' + (++thinkingIdCounter);
+  const el = document.createElement('div');
+  el.className = 'msg-ai msg-thinking';
+  el.id = id;
+  el.innerHTML = `<span class="msg-icon">🤖</span><div class="msg-inner"><div class="msg-label">[ AI · 案件主持 ]</div><div class="msg-bubble" style="animation: blink 0.8s step-end infinite;">思考中...</div></div>`;
+  wrap.appendChild(el);
+  scrollChatToBottom();
+  return id;
+}
+function removeThinkingMsg(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function scrollChatToBottom() {
+  const wrap = document.getElementById('chat-messages');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+
+function updateQCount() {
+  const pct = Math.min(100, Math.round(questionCount / MAX_QUESTIONS * 100));
+  document.getElementById('q-count-display').textContent = `已 提 问 ${questionCount} / ${MAX_QUESTIONS}`;
+  document.getElementById('q-progress-bar').style.width = pct + '%';
+}
+
+function revealSoloTangdi() {
+  document.getElementById('solo-reveal-btn-wrap').style.display = 'none';
+  document.getElementById('solo-tangdi-content').style.display = 'block';
+  window.scrollTo(0, document.body.scrollHeight);
+}
 
 initScene();
 renderHistory();

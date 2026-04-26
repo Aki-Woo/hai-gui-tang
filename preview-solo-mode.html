@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>【预览】单人侦探模式 - 海龟汤</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #0b0b1e;
+  --panel:  #13112e;
+  --panel2: #1c1840;
+  --border: #3a3568;
+  --purple: #a78bfa;
+  --accent: #7c3aed;
+  --red:    #dc2626;
+  --red2:   #f87171;
+  --orange: #f97316;
+  --teal:   #2dd4bf;
+  --yellow: #fbbf24;
+  --text:   #e2e0ff;
+  --text2:  #8b85cc;
+  --px:     'Courier New', 'Lucida Console', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--px);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* =========== 像素夜城背景 =========== */
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.scene .sky {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #05050f 0%, #0d0b28 40%, #1a0a30 65%, #250d3a 80%, #0d0515 100%);
+}
+.scene .stars { position: absolute; inset: 0; }
+.scene .rain  { position: absolute; inset: 0; opacity: 0.2; }
+
+.raindrop {
+  position: absolute; width: 2px;
+  background: linear-gradient(180deg, transparent, #a78bfa);
+  animation: rain linear infinite;
+}
+@keyframes rain {
+  0%   { transform: translateY(-80px); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(110vh); opacity: 0; }
+}
+
+.scene .city {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  width: 100%; height: 45%;
+}
+
+/* 扫描线 */
+.scanlines {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 4px);
+}
+
+/* =========== LAYOUT =========== */
+.app {
+  position: relative; z-index: 2;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 24px 100px;
+}
+
+/* =========== HEADER =========== */
+.header {
+  text-align: center;
+  padding: 48px 0 32px;
+}
+.header-logo {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 12px #dc2626) drop-shadow(0 0 24px #7c3aed);
+  animation: float 2.8s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0) rotate(-3deg); }
+  50%      { transform: translateY(-10px) rotate(3deg); }
+}
+.header-title {
+  font-size: 36px;
+  letter-spacing: 12px;
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--red), 6px 6px 0 rgba(220,38,38,0.3), 0 0 30px var(--purple), 0 0 60px rgba(124,58,237,0.4);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.header-sub {
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 4px;
+}
+
+/* 像素分割线 */
+.px-hr {
+  display: flex; align-items: center; gap: 8px;
+  margin: 20px 0; font-size: 10px; color: var(--text2); letter-spacing: 3px;
+}
+.px-hr::before, .px-hr::after {
+  content: ''; flex: 1; height: 3px;
+  background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px);
+}
+
+/* =========== 像素面板 =========== */
+.px-panel {
+  background: var(--panel);
+  border: 3px solid var(--border);
+  padding: 24px;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(167,139,250,0.08);
+}
+.px-panel::before { content:'▪'; position:absolute; top:-2px; left:-2px; color:var(--purple); font-size:9px; line-height:1; }
+.px-panel::after  { content:'▪'; position:absolute; top:-2px; right:-2px; color:var(--purple); font-size:9px; line-height:1; }
+
+.px-panel-title {
+  font-size: 14px;
+  color: var(--purple);
+  letter-spacing: 6px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid;
+  border-image: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px) 1;
+}
+
+/* =========== 输入框 =========== */
+.input-label {
+  font-size: 12px;
+  color: var(--text2);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+  display: block;
+  line-height: 1.8;
+}
+.input-label em { color: var(--purple); font-style: normal; }
+
+.kw-row { display: flex; gap: 10px; }
+.kw-row input { flex: 1; min-width: 0; }
+
+input[type="text"] {
+  background: #080818;
+  border: 3px solid var(--border);
+  color: var(--text);
+  font-family: var(--px);
+  font-size: 14px;
+  padding: 14px 16px;
+  width: 100%;
+  outline: none;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5);
+  transition: border-color 0.15s;
+}
+input[type="text"]:focus {
+  border-color: var(--purple);
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5), 0 0 12px rgba(124,58,237,0.3);
+}
+input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px; }
+
+.input-group { margin-bottom: 20px; }
+
+/* =========== 像素按钮 =========== */
+.px-btn {
+  display: block; width: 100%;
+  padding: 18px 20px;
+  font-family: var(--px);
+  font-size: 14px;
+  letter-spacing: 4px;
+  cursor: pointer; border: none;
+  text-align: center;
+  transition: transform 0.05s;
+  line-height: 1.5;
+}
+
+/* 红色主按钮（多人模式） */
+.px-btn-main {
+  background: #3d0f0f;
+  color: var(--red2);
+  border: 4px solid var(--red);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #150505, 0 0 16px rgba(220,38,38,0.35), inset 0 1px 0 rgba(248,113,113,0.15);
+  text-shadow: 0 0 10px var(--red2);
+}
+.px-btn-main:hover {
+  background: #5c1515;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #150505, 0 0 24px rgba(220,38,38,0.55), inset 0 1px 0 rgba(248,113,113,0.15);
+}
+.px-btn-main:active { transform: translate(3px,3px); box-shadow: 0 0 0 1px var(--bg), 2px 2px 0 #150505; }
+
+/* 青色/紫色侦探按钮（单人模式）*/
+.px-btn-solo {
+  background: #051e1c;
+  color: var(--teal);
+  border: 4px solid var(--teal);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #020d0c, 0 0 16px rgba(45,212,191,0.3), inset 0 1px 0 rgba(45,212,191,0.1);
+  text-shadow: 0 0 10px var(--teal);
+}
+.px-btn-solo:hover {
+  background: #0a302d;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #020d0c, 0 0 28px rgba(45,212,191,0.5), 0 0 50px rgba(167,139,250,0.2), inset 0 1px 0 rgba(45,212,191,0.15);
+}
+.px-btn-solo:active { transform: translate(3px,3px); }
+
+/* 紫色开始按钮 */
+.px-btn-start-solo {
+  background: #1a0d3a;
+  color: var(--purple);
+  border: 4px solid var(--purple);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0a0520, 0 0 16px rgba(167,139,250,0.3), inset 0 1px 0 rgba(167,139,250,0.1);
+  text-shadow: 0 0 10px var(--purple);
+}
+.px-btn-start-solo:hover {
+  background: #2a1558;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #0a0520, 0 0 28px rgba(167,139,250,0.5), inset 0 1px 0 rgba(167,139,250,0.15);
+}
+.px-btn-start-solo:active { transform: translate(3px,3px); }
+
+/* 返回按钮 */
+.px-btn-back {
+  background: var(--panel);
+  color: var(--text2);
+  border: 3px solid var(--purple);
+  font-size: 11px;
+  letter-spacing: 3px;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.4), 0 0 10px rgba(167,139,250,0.15);
+}
+.px-btn-back:hover { color: #fff; border-color: #fff; transform: translate(-2px,-2px); }
+
+/* 红色揭晓按钮 */
+.px-btn-reveal {
+  background: #1a0520; color: var(--red2);
+  border: 4px solid var(--red); font-size: 15px; letter-spacing: 5px;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 20px rgba(220,38,38,0.5), inset 0 1px 0 rgba(248,113,113,0.1);
+  text-shadow: 0 0 12px var(--red2);
+  padding: 20px;
+  animation: revealPulse 2s ease-in-out infinite;
+}
+@keyframes revealPulse {
+  0%,100% { box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 20px rgba(220,38,38,0.4); }
+  50%      { box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #0d0005, 0 0 40px rgba(220,38,38,0.8); }
+}
+.px-btn-reveal:hover { transform: translate(-2px,-2px); }
+
+/* =========== 发送按钮 =========== */
+.px-btn-send {
+  background: #051e1c;
+  color: var(--teal);
+  border: 3px solid var(--teal);
+  font-size: 13px;
+  letter-spacing: 3px;
+  padding: 14px 20px;
+  white-space: nowrap;
+  box-shadow: 3px 3px 0 #020d0c, 0 0 10px rgba(45,212,191,0.25);
+  flex-shrink: 0;
+  cursor: pointer;
+  font-family: var(--px);
+}
+.px-btn-send:hover {
+  background: #0a302d;
+  transform: translate(-1px,-1px);
+  box-shadow: 5px 5px 0 #020d0c, 0 0 18px rgba(45,212,191,0.4);
+}
+
+/* =========== 历史记录 =========== */
+.history-empty {
+  text-align: center; padding: 40px 24px;
+  letter-spacing: 2px; line-height: 1;
+  background: rgba(13,11,30,0.88);
+  border: 3px solid var(--border);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5);
+}
+.history-empty .line1 { color: var(--text); font-size: 16px; display: block; margin-bottom: 20px; letter-spacing: 3px; }
+.history-empty .line2 { color: var(--purple); font-size: 13px; display: block; letter-spacing: 2px; }
+.empty-skull { font-size: 52px; display: block; margin-bottom: 24px; }
+
+.hist-item {
+  background: var(--panel2); border: 3px solid var(--border);
+  padding: 18px 20px; margin-bottom: 10px;
+  cursor: pointer; transition: all 0.1s;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+  position: relative; overflow: hidden;
+}
+.hist-item::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: repeating-linear-gradient(180deg, var(--red) 0, var(--red) 5px, transparent 5px, transparent 10px);
+}
+.hist-item:hover {
+  border-color: var(--purple); transform: translate(-2px,-2px);
+  box-shadow: 6px 6px 0 rgba(0,0,0,0.5);
+}
+.hist-title {
+  font-size: 14px; color: var(--text); margin-bottom: 12px;
+  padding-left: 12px; text-shadow: 0 0 10px var(--purple); letter-spacing: 2px;
+}
+.hist-tags { display: flex; flex-wrap: wrap; gap: 6px; padding-left: 12px; }
+.px-tag {
+  font-size: 9px; padding: 4px 10px;
+  border: 2px solid var(--border); color: var(--text2); background: #080818;
+}
+.px-tag.st { border-color: rgba(167,139,250,0.5); color: var(--purple); }
+
+/* =========== 难度选择 =========== */
+.difficulty-group {
+  display: flex; gap: 10px; margin-top: 10px;
+}
+.diff-option { flex: 1; position: relative; }
+.diff-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.diff-option label {
+  display: block; width: 100%;
+  padding: 14px 10px;
+  text-align: center;
+  font-family: var(--px);
+  font-size: 12px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  border: 3px solid var(--border);
+  background: #080818;
+  color: var(--text2);
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+  transition: all 0.1s;
+}
+.diff-option input[type="radio"]:checked + label {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: #051e1c;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5), 0 0 12px rgba(45,212,191,0.25);
+  text-shadow: 0 0 8px var(--teal);
+}
+.diff-option label:hover { border-color: var(--purple); color: var(--purple); }
+
+/* =========== 进度条 =========== */
+.question-progress-wrap {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 4px;
+}
+.q-progress-bar-outer {
+  flex: 1; height: 10px;
+  background: #080818;
+  border: 2px solid var(--border);
+  padding: 2px;
+  box-shadow: inset 2px 2px 0 rgba(0,0,0,0.5);
+}
+.q-progress-bar-fill {
+  height: 100%;
+  background: repeating-linear-gradient(90deg, var(--teal) 0, var(--teal) 8px, rgba(45,212,191,0.4) 8px, rgba(45,212,191,0.4) 12px);
+  box-shadow: 0 0 6px var(--teal);
+  width: 15%;
+}
+.q-progress-label {
+  font-size: 11px; color: var(--teal); letter-spacing: 2px; white-space: nowrap;
+  text-shadow: 0 0 8px var(--teal);
+}
+
+/* =========== 对话气泡 =========== */
+.chat-area {
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 20px 0;
+  min-height: 260px;
+}
+
+/* AI气泡（左对齐） */
+.bubble-ai {
+  display: flex; gap: 10px; align-items: flex-start;
+  max-width: 85%;
+  align-self: flex-start;
+}
+.bubble-ai .bubble-icon {
+  font-size: 22px; flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--purple));
+}
+.bubble-ai .bubble-body {
+  background: #1a0d3a;
+  border: 2px solid var(--purple);
+  border-left: 4px solid var(--purple);
+  padding: 12px 16px;
+  font-size: 13px; color: var(--text); letter-spacing: 1px; line-height: 1.9;
+  box-shadow: 3px 3px 0 rgba(0,0,0,0.5), 0 0 10px rgba(167,139,250,0.15);
+  position: relative;
+}
+.bubble-ai .bubble-body::before {
+  content: 'AI'; position: absolute; top: -10px; left: 8px;
+  font-size: 8px; color: var(--purple); letter-spacing: 2px; background: #1a0d3a; padding: 0 4px;
+}
+
+/* 玩家气泡（右对齐） */
+.bubble-player {
+  display: flex; gap: 10px; align-items: flex-start;
+  max-width: 85%;
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.bubble-player .bubble-icon {
+  font-size: 22px; flex-shrink: 0;
+  filter: drop-shadow(0 0 6px var(--red));
+}
+.bubble-player .bubble-body {
+  background: #2a0a0a;
+  border: 2px solid var(--red);
+  border-right: 4px solid var(--red);
+  padding: 12px 16px;
+  font-size: 13px; color: var(--text); letter-spacing: 1px; line-height: 1.9;
+  box-shadow: -3px 3px 0 rgba(0,0,0,0.5), 0 0 10px rgba(220,38,38,0.15);
+  position: relative;
+}
+.bubble-player .bubble-body::before {
+  content: '侦探'; position: absolute; top: -10px; right: 8px;
+  font-size: 8px; color: var(--red2); letter-spacing: 2px; background: #2a0a0a; padding: 0 4px;
+}
+
+/* =========== 案件面板 =========== */
+.case-panel {
+  background: #0c0a20;
+  border: 3px solid rgba(45,212,191,0.4);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 rgba(0,0,0,0.5), inset 0 0 20px rgba(45,212,191,0.05);
+}
+.case-panel::before { content:'◆'; position:absolute; top:-2px; left:-2px; color:var(--teal); font-size:9px; line-height:1; }
+.case-panel::after  { content:'◆'; position:absolute; top:-2px; right:-2px; color:var(--teal); font-size:9px; line-height:1; }
+
+.case-title-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.case-badge {
+  font-size: 9px; padding: 4px 10px;
+  border: 2px solid var(--teal); color: var(--teal); background: #051e1c;
+  letter-spacing: 2px;
+}
+.case-title {
+  font-size: 16px; color: var(--teal); letter-spacing: 4px;
+  text-shadow: 0 0 12px var(--teal);
+}
+.case-body {
+  font-size: 12px; color: var(--text); letter-spacing: 0.5px; line-height: 2.4;
+}
+
+/* =========== 底部输入区 =========== */
+.chat-input-bar {
+  display: flex; gap: 10px; margin-top: 16px;
+}
+.chat-input {
+  flex: 1;
+  background: #080818;
+  border: 3px solid var(--border);
+  color: var(--text);
+  font-family: var(--px);
+  font-size: 13px;
+  padding: 14px 16px;
+  outline: none;
+  box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5);
+}
+.chat-input::placeholder { color: rgba(139,133,204,0.35); font-size: 11px; }
+.chat-input:focus { border-color: var(--teal); box-shadow: inset 3px 3px 0 rgba(0,0,0,0.5), 0 0 12px rgba(45,212,191,0.2); }
+
+/* =========== 预览分隔标题 =========== */
+.preview-section-label {
+  text-align: center;
+  margin: 56px 0 28px;
+  position: relative;
+}
+.preview-section-label .psl-inner {
+  display: inline-block;
+  background: #0b0b1e;
+  padding: 12px 28px;
+  border: 3px solid var(--yellow);
+  color: var(--yellow);
+  font-size: 11px;
+  letter-spacing: 5px;
+  box-shadow: 0 0 0 1px #0b0b1e, 5px 5px 0 rgba(251,191,36,0.25), 0 0 20px rgba(251,191,36,0.2);
+  text-shadow: 0 0 10px var(--yellow);
+}
+.preview-section-label .psl-inner small {
+  display: block;
+  color: var(--text2);
+  font-size: 9px;
+  letter-spacing: 3px;
+  margin-top: 6px;
+}
+.preview-section-label::before,
+.preview-section-label::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: calc(50% - 140px);
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px);
+  transform: translateY(-50%);
+}
+.preview-section-label::before { left: 0; }
+.preview-section-label::after { right: 0; }
+
+/* =========== 模式选择按钮 =========== */
+.mode-btn-wrap { margin-bottom: 14px; }
+.mode-btn {
+  display: block; width: 100%;
+  padding: 20px 24px;
+  font-family: var(--px);
+  cursor: pointer; border: none;
+  text-align: left;
+  transition: transform 0.05s;
+  line-height: 1;
+}
+.mode-btn-title {
+  font-size: 16px;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+  display: block;
+}
+.mode-btn-sub {
+  font-size: 10px;
+  letter-spacing: 2px;
+  opacity: 0.7;
+  display: block;
+}
+
+/* 多人模式按钮（红色，原有样式升级）*/
+.mode-btn-multi {
+  background: #3d0f0f;
+  color: var(--red2);
+  border: 4px solid var(--red);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #150505, 0 0 16px rgba(220,38,38,0.35), inset 0 1px 0 rgba(248,113,113,0.15);
+  text-shadow: 0 0 10px var(--red2);
+}
+.mode-btn-multi:hover {
+  background: #5c1515;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #150505, 0 0 28px rgba(220,38,38,0.55);
+}
+
+/* 单人侦探模式按钮（青色/紫色）*/
+.mode-btn-solo {
+  background: #051e1c;
+  color: var(--teal);
+  border: 4px solid var(--teal);
+  box-shadow: 0 0 0 1px var(--bg), 5px 5px 0 #020d0c, 0 0 16px rgba(45,212,191,0.3), inset 0 1px 0 rgba(45,212,191,0.1);
+  text-shadow: 0 0 10px var(--teal);
+}
+.mode-btn-solo:hover {
+  background: #0a302d;
+  transform: translate(-2px,-2px);
+  box-shadow: 0 0 0 1px var(--bg), 7px 7px 0 #020d0c, 0 0 30px rgba(45,212,191,0.5), 0 0 60px rgba(167,139,250,0.15);
+}
+.mode-btn-solo .mode-btn-title { color: var(--teal); }
+.mode-btn-solo .mode-btn-sub { color: rgba(45,212,191,0.7); }
+
+/* =========== 星星动画 =========== */
+.star { position: absolute; background: #fff; image-rendering: pixelated; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+</style>
+</head>
+<body>
+
+<!-- ===== 背景场景 ===== -->
+<div class="scene">
+  <div class="sky"></div>
+  <div class="stars" id="stars"></div>
+  <div class="rain" id="rain"></div>
+  <!-- 赛博城市 SVG（原样保留） -->
+  <svg class="city" viewBox="0 0 1400 420" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(124,58,237,0.2)"/>
+        <stop offset="100%" stop-color="transparent"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="402" width="1400" height="18" fill="#07060f"/>
+    <rect x="0" y="398" width="1400" height="6" fill="url(#glow)"/>
+    <rect x="20"  y="250" width="44"  height="152" fill="#0e0c20" opacity=".7"/>
+    <rect x="120" y="210" width="55"  height="192" fill="#0c0b1e" opacity=".7"/>
+    <rect x="320" y="180" width="70"  height="222" fill="#0e0c20" opacity=".6"/>
+    <rect x="700" y="160" width="80"  height="242" fill="#0c0b1e" opacity=".6"/>
+    <rect x="1050" y="200" width="60" height="202" fill="#0e0c20" opacity=".6"/>
+    <rect x="1250" y="230" width="55" height="172" fill="#0c0b1e" opacity=".7"/>
+    <rect x="60"  y="140" width="52"  height="262" fill="#13112a"/>
+    <rect x="60"  y="140" width="4"   height="262" fill="#dc2626" opacity=".35"/>
+    <rect x="70"  y="158" width="14"  height="18"  fill="#f97316" opacity=".7"/>
+    <rect x="92"  y="164" width="10"  height="12"  fill="#fbbf24" opacity=".4"/>
+    <rect x="248" y="110" width="85"  height="292" fill="#0f0d24"/>
+    <rect x="248" y="110" width="85"  height="5"   fill="#a78bfa" opacity=".4"/>
+    <rect x="400" y="70"  width="48"  height="332" fill="#13112a"/>
+    <rect x="444" y="70"  width="4"   height="332" fill="#2dd4bf" opacity=".25"/>
+    <rect x="500" y="20"  width="130" height="382" fill="#0a0818"/>
+    <rect x="500" y="20"  width="6"   height="382" fill="#7c3aed" opacity=".2"/>
+    <rect x="624" y="20"  width="6"   height="382" fill="#dc2626" opacity=".2"/>
+    <rect x="508" y="50"  width="114" height="40"  fill="#160824"/>
+    <rect x="508" y="50"  width="114" height="4"   fill="#a78bfa" opacity=".7"/>
+    <rect x="508" y="86"  width="114" height="4"   fill="#a78bfa" opacity=".7"/>
+    <rect x="560" y="0"   width="10"  height="22"  fill="#2a2550"/>
+    <rect x="800" y="55"  width="110" height="347" fill="#0f0d24"/>
+    <rect x="800" y="55"  width="110" height="5"   fill="#2dd4bf" opacity=".5"/>
+    <rect x="1070" y="120" width="88" height="282" fill="#13112a"/>
+    <rect x="1210" y="80"  width="95" height="322" fill="#0f0d24"/>
+    <rect x="1350" y="240" width="50" height="162" fill="#1c1840"/>
+  </svg>
+</div>
+<div class="scanlines"></div>
+
+<!-- ===== APP ===== -->
+<div class="app">
+
+  <!-- ============================
+       HEADER（所有页面共享）
+       ============================ -->
+  <div class="header">
+    <span class="header-logo">🐢</span>
+    <div class="header-title">海 龟 汤</div>
+    <div class="header-sub">· AI HORROR SOUP GENERATOR ·</div>
+  </div>
+
+  <!-- ============================
+       预览标签：PAGE 1 - 首页改造
+       ============================ -->
+  <div class="preview-section-label">
+    <div class="psl-inner">
+      ✦ PAGE 1 · 首 页 改 造
+      <small>新增模式选择按钮 · 原有历史记录保留</small>
+    </div>
+  </div>
+
+  <!-- PAGE 1 预览内容 -->
+  <div class="mode-btn-wrap">
+    <button class="mode-btn mode-btn-multi">
+      <span class="mode-btn-title">👥 多 人 模 式（主 持 人 版）</span>
+      <span class="mode-btn-sub">输入关键词 · AI生成谜题 · 主持人掌控汤底</span>
+    </button>
+  </div>
+
+  <div class="mode-btn-wrap">
+    <button class="mode-btn mode-btn-solo">
+      <span class="mode-btn-title">🕵️ 单 人 侦 探 模 式</span>
+      <span class="mode-btn-sub">与AI对话 · 逐步破案 · 你就是侦探</span>
+    </button>
+  </div>
+
+  <div class="px-hr">HISTORY · 历 史 记 录</div>
+
+  <!-- 历史记录示例 -->
+  <div class="hist-item">
+    <div class="hist-title">真娃娃</div>
+    <div class="hist-tags">
+      <span class="px-tag">娃娃</span>
+      <span class="px-tag">书包</span>
+      <span class="px-tag">妈妈</span>
+      <span class="px-tag st">中式恐怖</span>
+    </div>
+  </div>
+  <div class="history-empty" style="margin-top:10px;">
+    <span class="empty-skull">💀</span>
+    <div class="line1">还没有更多记录</div>
+    <div class="line2">▶ 选择模式开始创作</div>
+  </div>
+
+
+  <!-- ============================
+       预览标签：PAGE 4 - 单人配置页
+       ============================ -->
+  <div class="preview-section-label">
+    <div class="psl-inner">
+      ✦ PAGE 4 · 单 人 侦 探 配 置
+      <small>NEW · 选择难度 · 输入关键词 · 开始破案</small>
+    </div>
+  </div>
+
+  <!-- PAGE 4 预览内容 -->
+  <div class="px-panel">
+    <div class="px-panel-title">🕵️ 侦 探 档 案 配 置</div>
+
+    <div class="input-group">
+      <label class="input-label">🔑 案件关键词 <em>（各最多4字）</em></label>
+      <div class="kw-row">
+        <input type="text" placeholder="词一" maxlength="4" value="餐厅">
+        <input type="text" placeholder="词二" maxlength="4" value="镜子">
+        <input type="text" placeholder="词三" maxlength="4" value="失忆">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">🎭 故事风格 <em>（最多6字）</em></label>
+      <input type="text" placeholder="如：悬疑推理、心理恐怖..." maxlength="6" value="悬疑推理">
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">⚡ 难度选择</label>
+      <div class="difficulty-group">
+        <div class="diff-option">
+          <input type="radio" name="difficulty" id="diff-easy" value="easy">
+          <label for="diff-easy">😌 简 单</label>
+        </div>
+        <div class="diff-option">
+          <input type="radio" name="difficulty" id="diff-normal" value="normal" checked>
+          <label for="diff-normal">🔍 普 通</label>
+        </div>
+        <div class="diff-option">
+          <input type="radio" name="difficulty" id="diff-hard" value="hard">
+          <label for="diff-hard">💀 困 难</label>
+        </div>
+      </div>
+    </div>
+
+    <button class="px-btn px-btn-start-solo" style="margin-bottom:14px;">
+      🔍 开 始 破 案
+    </button>
+  </div>
+
+  <button class="px-btn px-btn-back">← 返 回</button>
+
+
+  <!-- ============================
+       预览标签：PAGE 5 - 对话推理页
+       ============================ -->
+  <div class="preview-section-label">
+    <div class="psl-inner">
+      ✦ PAGE 5 · 对 话 推 理
+      <small>NEW · AI问答 · 实时推理 · 揭晓真相</small>
+    </div>
+  </div>
+
+  <!-- PAGE 5 预览内容 -->
+
+  <!-- 案件信息面板 -->
+  <div class="case-panel">
+    <div class="case-title-row">
+      <span class="case-badge">CASE #047</span>
+      <span class="case-title">镜 中 晚 餐</span>
+    </div>
+    <div class="case-body">
+      一个男人走进一家餐厅，对着镜子点了一份牛排。
+      吃完结账时，他却哭了起来。
+      服务员不解，男人说：这是我最后一次对着镜子吃饭了。
+    </div>
+  </div>
+
+  <!-- 进度条 -->
+  <div class="question-progress-wrap">
+    <span class="q-progress-label">已提问 3 / 20 题</span>
+    <div class="q-progress-bar-outer">
+      <div class="q-progress-bar-fill"></div>
+    </div>
+    <span class="q-progress-label">15%</span>
+  </div>
+
+  <!-- 对话区 -->
+  <div class="px-panel" style="padding: 16px;">
+    <div class="chat-area">
+
+      <!-- 玩家气泡 -->
+      <div class="bubble-player">
+        <span class="bubble-icon">🕵️</span>
+        <div class="bubble-body">死者是男性吗？</div>
+      </div>
+
+      <!-- AI气泡 -->
+      <div class="bubble-ai">
+        <span class="bubble-icon">🤖</span>
+        <div class="bubble-body">是的。</div>
+      </div>
+
+      <!-- 玩家气泡 -->
+      <div class="bubble-player">
+        <span class="bubble-icon">🕵️</span>
+        <div class="bubble-body">死亡与食物有关吗？</div>
+      </div>
+
+      <!-- AI气泡 -->
+      <div class="bubble-ai">
+        <span class="bubble-icon">🤖</span>
+        <div class="bubble-body">可以这么说。</div>
+      </div>
+
+    </div>
+
+    <!-- 底部输入栏 -->
+    <div class="chat-input-bar">
+      <input class="chat-input" type="text" placeholder="输入你的问题（只能问是/否问题）...">
+      <button class="px-btn-send">▶ 发 送</button>
+    </div>
+  </div>
+
+  <!-- 揭晓按钮 -->
+  <button class="px-btn px-btn-reveal" style="margin-top: 8px;">
+    ⚠ 我 已 破 案 · 揭 晓 汤 底
+  </button>
+
+  <!-- 底部留白 -->
+  <div style="height: 40px;"></div>
+
+</div><!-- /app -->
+
+<script>
+// 初始化背景粒子
+function initScene() {
+  const stars = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() > 0.8 ? 4 : 2;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*55}%;opacity:${0.3+Math.random()*0.7};animation:blink ${1+Math.random()*3}s step-end infinite;animation-delay:${Math.random()*3}s`;
+    stars.appendChild(s);
+  }
+  const rain = document.getElementById('rain');
+  for (let i = 0; i < 50; i++) {
+    const r = document.createElement('div');
+    r.className = 'raindrop';
+    r.style.cssText = `left:${Math.random()*100}%;height:${30+Math.random()*60}px;animation-duration:${0.5+Math.random()*0.8}s;animation-delay:${Math.random()*2}s`;
+    rain.appendChild(r);
+  }
+}
+initScene();
+</script>
+</body>
+</html>

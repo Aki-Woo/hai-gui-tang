@@ -20,7 +20,7 @@ const SYSTEM_PROMPT = `你是一个擅长创作情境推理游戏（海龟汤）
 【汤底】
 [内容]`;
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // 只允许 POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
