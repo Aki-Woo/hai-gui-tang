@@ -862,8 +862,8 @@ input[type="text"]::placeholder { color: rgba(139,133,204,0.35); font-size: 12px
 </div>
 
 <script>
-const KIMI_API_URL = 'https://api.moonshot.cn/v1/chat/completions';
-const KIMI_API_KEY = 'sk-vsUvDUFg1kGQBseLQ2t0CKGpNrAO5wspgJnjIZPXRhVrtXGt';
+const KIMI_API_URL = 'https://coding.dashscope.aliyuncs.com/v1/chat/completions';
+const KIMI_API_KEY = 'sk-sp-8e5671be78af46d0acce08f368394f25';
 
 let currentResult = null, abortController = null;
 
@@ -1047,13 +1047,12 @@ async function submitGenerate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
       body: JSON.stringify({
-        model: 'kimi-k2.6',
+        model: 'qwen3.6-plus',
         messages: [
           { role: 'system', content: SOUP_GEN_PROMPT },
           { role: 'user', content: `关键词1：${kw1}\n关键词2：${kw2}\n关键词3：${kw3}\n风格：${style}` }
         ],
         max_tokens: 2000,
-        thinking: { type: 'disabled' }
       }),
       signal: abortController.signal
     });
@@ -1146,13 +1145,12 @@ async function submitSoloGenerate() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
       body: JSON.stringify({
-        model: 'kimi-k2.6',
+        model: 'qwen3.6-plus',
         messages: [
           { role: 'system', content: SOUP_GEN_PROMPT },
           { role: 'user', content: `关键词1：${kw1}\n关键词2：${kw2}\n关键词3：${kw3}\n风格：${style}` }
         ],
         max_tokens: 2000,
-        thinking: { type: 'disabled' }
       })
     });
     clearInterval(iv);
@@ -1260,10 +1258,9 @@ async function sendQuestion() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
       body: JSON.stringify({
-        model: 'kimi-k2.6',
+        model: 'qwen3.6-plus',
         messages: chatHistory,
         max_tokens: 200,
-        thinking: { type: 'disabled' }
       })
     });
     if (!res.ok) {
