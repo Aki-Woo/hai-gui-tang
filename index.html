@@ -909,19 +909,30 @@ function renderHistory() {
   const list = document.getElementById('history-list');
   const h = getHistory();
   if (!h.length) {
-    list.innerHTML = `<div class="history-empty"><span class="empty-skull">💀</span><div class="line1">还没有烹饪过海龟汤</div><div class="line2">▶ 点击上方按钮开始创作</div></div>`;
+    list.innerHTML = `<div class="history-empty"><span class="empty-skull">💀</span><div class="line1">还没有烹饪过海龟汤</div><div class="line2">▶ 选择模式开始游戏</div></div>`;
     return;
   }
-  list.innerHTML = h.map((item, i) => `
+  list.innerHTML = h.map((item, i) => {
+    const isSolo = item.mode === 'solo';
+    const modeTag = isSolo
+      ? `<span class="px-tag" style="border-color:rgba(45,212,191,0.5);color:var(--teal);">🕵️ 单人</span>`
+      : `<span class="px-tag" style="border-color:rgba(220,38,38,0.5);color:var(--red2);">👥 多人</span>`;
+    const diffTag = isSolo && item.difficulty
+      ? `<span class="px-tag">${{easy:'🌱简单',normal:'🔥普通',hard:'💀困难'}[item.difficulty]||''}</span>`
+      : '';
+    return `
     <div class="hist-item" onclick="viewHistory(${i})">
       <div class="hist-title">${esc(item.title)}</div>
       <div class="hist-tags">
+        ${modeTag}
         <span class="px-tag">${esc(item.kw1)}</span>
         <span class="px-tag">${esc(item.kw2)}</span>
         <span class="px-tag">${esc(item.kw3)}</span>
         <span class="px-tag st">${esc(item.style)}</span>
+        ${diffTag}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function viewHistory(i) { currentResult = getHistory()[i]; renderPage3(currentResult); goTo(3); }
@@ -1021,13 +1032,22 @@ function parseResult(text, kw1, kw2, kw3, style) {
   return { title, tangmian, tangdi, kw1, kw2, kw3, style, createdAt: Date.now() };
 }
 function renderPage3(r) {
+  const isSolo = r.mode === 'solo';
+  const modeText = isSolo ? '🕵️ 单人侦探' : '👥 多人主持';
+  const diffText = isSolo && r.difficulty ? `· ${{easy:'🌱简单',normal:'🔥普通',hard:'💀困难'}[r.difficulty]}` : '';
   document.getElementById('recipe-info-text').innerHTML =
-    `根据你的配方 <span class="kw">${esc(r.kw1)}</span>、<span class="kw">${esc(r.kw2)}</span>、<span class="kw">${esc(r.kw3)}</span>，用 <span class="st">${esc(r.style)}</span> 小料制作而成的海龟汤`;
+    `<span style="color:${isSolo?'var(--teal)':'var(--red2)'}">${modeText}</span> ${diffText} &nbsp;|&nbsp; 配方 <span class="kw">${esc(r.kw1)}</span>、<span class="kw">${esc(r.kw2)}</span>、<span class="kw">${esc(r.kw3)}</span>，风格 <span class="st">${esc(r.style)}</span>`;
   document.getElementById('result-title').textContent = r.title;
   document.getElementById('result-tangmian').textContent = r.tangmian;
   document.getElementById('result-tangdi').textContent = r.tangdi;
-  document.getElementById('reveal-btn-wrap').style.display = 'block';
-  document.getElementById('tangdi-content').style.display = 'none';
+  // 单人模式历史直接展示汤底（已经玩过了）；多人模式保持隐藏
+  if (isSolo) {
+    document.getElementById('reveal-btn-wrap').style.display = 'none';
+    document.getElementById('tangdi-content').style.display = 'block';
+  } else {
+    document.getElementById('reveal-btn-wrap').style.display = 'block';
+    document.getElementById('tangdi-content').style.display = 'none';
+  }
 }
 function revealTangdi() {
   document.getElementById('reveal-btn-wrap').style.display = 'none';
@@ -1095,7 +1115,8 @@ async function submitSoloGenerate() {
     setSoloProgress(100);
 
     const parsed = parseResult(text, kw1, kw2, kw3, style);
-    soloCase = { ...parsed, difficulty };
+    soloCase = { ...parsed, difficulty, mode: 'solo' };
+    saveHistory({ ...parsed, difficulty, mode: 'solo' });
     setTimeout(() => { startSoloGame(); resetSoloLoading(); }, 500);
   } catch(e) {
     clearInterval(iv);
